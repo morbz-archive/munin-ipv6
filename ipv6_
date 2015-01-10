@@ -1,0 +1,80 @@
+#!/bin/bash
+# License: GPLv2
+# Adapted from: http://munin-monitoring.org/browser/munin-contrib/plugins/network/traffic
+# Authors: Arturo Borrero Gonzalez, Michiel Holtkamp, Merten Peetz
+
+type=`cut -d "_" -f 2 <<< "$0"`
+if [ "$1" == "config" ]
+then
+	if [ "$type" = "total" ]
+	then
+		cat <<'EOF'
+graph_title Throughput by IP protocol
+graph_vlabel bits per ${graph_period}
+graph_category network
+graph_args --base 1000 --upper-limit 100 -l 0
+IPv4.label IPv4 bps
+IPv4.min 0
+IPv4.type DERIVE
+IPv4.draw AREA
+IPv6.label IPv6 bps
+IPv6.min 0
+IPv6.type DERIVE
+IPv6.draw STACK
+total.label Total bps
+total.min 0
+total.type DERIVE
+total.draw LINE1
+EOF
+	else
+		cat <<'EOF'
+graph_scale no
+graph_title Throughput of IP protocols by percentage
+graph_vlabel Percentage
+graph_category network
+graph_args --upper-limit 100 -l 0 -r
+IPv4.label IPv4 %
+IPv4.min 0
+IPv4.draw AREA
+IPv6.label IPv6 %
+IPv6.min 0
+IPv6.draw STACK
+EOF
+	fi
+else
+	ipv4=0
+	if [ -r /proc/net/dev ]
+	then
+		ipv4=$( echo "`egrep -v bond\|lo /proc/net/dev | awk -F' ' '{print $2+$10}' | paste -sd+ | bc` * 8" | bc )
+	else
+		echo "W: Unable to read /proc/net/dev" >&2
+	fi
+
+	ipv6=0
+	if [ -r /proc/net/snmp6 ]
+	then
+		ipv6=$( echo "`egrep Ip6InOctets\|Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}' | paste -sd+ | bc` * 8"  | bc )
+	else
+		echo "W: Unable to read /proc/net/snmp6" >&2
+	fi
+	total=$( echo $ipv4 + $ipv6 | bc )
+	
+	if [ "$type" = "total" ]
+	then
+		echo "IPv4.value $ipv4"
+		echo "IPv6.value $ipv6"
+		echo "total.value $total"
+	else
+		ipv4_perc=0
+		ipv6_perc=0
+		if [ total != 0 ]
+		then
+			ipv4_perc=$( echo "scale=4;$ipv4/$total" | bc )
+			ipv4_perc=$( echo "scale=2;$ipv4_perc*100/1" | bc )
+			ipv6_perc=$( echo "scale=4;$ipv6/$total" | bc )
+			ipv6_perc=$( echo "scale=2;$ipv6_perc*100/1" | bc )
+		fi
+		echo "IPv4.value $ipv4_perc"
+		echo "IPv6.value $ipv6_perc"
+	fi
+fi
