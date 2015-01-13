@@ -65,16 +65,25 @@ else
 		echo "IPv6.value $ipv6"
 		echo "total.value $total"
 	else
-		ipv4_perc=0
-		ipv6_perc=0
-		if [ total != 0 ]
+		ipv4_f="/root/.traffic_ipv4"
+		ipv6_f="/root/.traffic_ipv6"
+		if [[ -a $ipv4_f && -a $ipv6_f ]]
 		then
-			ipv4_perc=$( echo "scale=4;$ipv4/$total" | bc )
-			ipv4_perc=$( echo "scale=2;$ipv4_perc*100/1" | bc )
-			ipv6_perc=$( echo "scale=4;$ipv6/$total" | bc )
-			ipv6_perc=$( echo "scale=2;$ipv6_perc*100/1" | bc )
+			ipv4_c=$( echo "$ipv4 - `cat $ipv4_f`" | bc )
+			ipv6_c=$( echo "$ipv6 - `cat $ipv6_f`" | bc )
+			total_c=$( echo "$ipv4_c + $ipv6_c" | bc )
+			if [ $total_c != 0 ]
+			then
+				ipv4_p=$( echo "scale=4;$ipv4_c/$total_c" | bc )
+				ipv4_p=$( echo "scale=2;$ipv4_p*100/1" | bc )
+				ipv6_p=$( echo "scale=4;$ipv6_c/$total_c" | bc )
+				ipv6_p=$( echo "scale=2;$ipv6_p*100/1" | bc )
+				echo "IPv4.value $ipv4_p"
+				echo "IPv6.value $ipv6_p"
+			fi
 		fi
-		echo "IPv4.value $ipv4_perc"
-		echo "IPv6.value $ipv6_perc"
+		
+		echo $ipv4 > $ipv4_f
+		echo $ipv6 > $ipv6_f
 	fi
 fi
