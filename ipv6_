@@ -47,7 +47,7 @@ else
 	ipv4=0
 	if [ -r /proc/net/dev ]
 	then
-		ipv4=$( echo "`egrep -v bond\|lo /proc/net/dev | awk -F' ' '{print $2+$10}' | paste -sd+ | bc` * 8" | bc )
+		total=$( echo "`egrep -v bond\|lo /proc/net/dev | awk -F' ' '{print $2+$10}' | paste -sd+ | bc` * 8" | bc )
 	else
 		echo "W: Unable to read /proc/net/dev" >&2
 	fi
@@ -59,7 +59,8 @@ else
 	else
 		echo "W: Unable to read /proc/net/snmp6" >&2
 	fi
-	total=$( echo $ipv4 + $ipv6 | bc )
+	ipv4=$( echo $total - $ipv6 | bc )
+#	total=$( echo $ipv4 + $ipv6 | bc )
 	
 	if [ "$type" = "total" ]
 	then
