@@ -11,3 +11,9 @@ Percentages:
 
 Don't forget to restart Munin after changing plugins:  
 `$ service munin-node restart`
+
+### System requirements
+bc package
+
+for ubuntu
+`# apt install bc`

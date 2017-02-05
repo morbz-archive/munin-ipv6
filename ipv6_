@@ -76,7 +76,7 @@ else
 			ipv4_c=$( echo "$ipv4 - `cat $ipv4_f`" | bc )
 			ipv6_c=$( echo "$ipv6 - `cat $ipv6_f`" | bc )
 			total_c=$( echo "$ipv4_c + $ipv6_c" | bc )
-			if [ $total_c != 0 ]
+			if [ "$total_c" != 0 ]
 			then
 				ipv4_p=$( echo "scale=4;$ipv4_c/$total_c" | bc )
 				ipv4_p=$( echo "scale=2;$ipv4_p*100/1" | bc )
