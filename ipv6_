@@ -46,9 +46,13 @@ EOF
 	fi
 else
 	ipv4=0
+        total=0
 	if [ -r /proc/net/dev ]
 	then
-		total=$( echo "`egrep -v bond\|lo /proc/net/dev | awk -F' ' '{print $2+$10}' | paste -sd+ | bc` * 8" | bc )
+                for i in $(fgrep -v -e bond -e lo /proc/net/dev | awk -F' ' '{print $2+$10}')
+                do
+                        total=$(( total + i * 8 ))
+                done
 	else
 		echo "W: Unable to read /proc/net/dev" >&2
 	fi
@@ -56,12 +60,14 @@ else
 	ipv6=0
 	if [ -r /proc/net/snmp6 ]
 	then
-		ipv6=$( echo "`egrep Ip6InOctets\|Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}' | paste -sd+ | bc` * 8"  | bc )
+                for i in $(fgrep -e Ip6InOctets -e Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}')
+                do
+                        ipv6=$(( ipv6 + i * 8 ))
+                done
 	else
 		echo "W: Unable to read /proc/net/snmp6" >&2
 	fi
-	ipv4=$( echo $total - $ipv6 | bc )
-#	total=$( echo $ipv4 + $ipv6 | bc )
+	ipv4=$(( total - ipv6 ))
 	
 	if [ "$type" = "total" ]
 	then
@@ -73,15 +79,15 @@ else
 		ipv6_f="${statefiledir}/ipv6_traffic_ipv6-${muninhost}"
 		if [[ -a $ipv4_f && -a $ipv6_f ]]
 		then
-			ipv4_c=$( echo "$ipv4 - `cat $ipv4_f`" | bc )
-			ipv6_c=$( echo "$ipv6 - `cat $ipv6_f`" | bc )
-			total_c=$( echo "$ipv4_c + $ipv6_c" | bc )
+                        ipv4_c=$(<$ipv4_f)
+                        ipv6_c=$(<$ipv6_f)
+			ipv4_c=$(( ipv4 - ipv4_c ))
+			ipv6_c=$(( ipv6 - ipv6_c ))
+			total_c=$(( ipv4_c + ipv6_c ))
 			if [ "$total_c" != 0 ]
 			then
-				ipv4_p=$( echo "scale=4;$ipv4_c/$total_c" | bc )
-				ipv4_p=$( echo "scale=2;$ipv4_p*100/1" | bc )
-				ipv6_p=$( echo "scale=4;$ipv6_c/$total_c" | bc )
-				ipv6_p=$( echo "scale=2;$ipv6_p*100/1" | bc )
+				ipv4_p=$(( 100 * ipv4_c / total_c ))
+				ipv6_p=$(( 100 * ipv6_c / total_c ))
 				echo "IPv4.value $ipv4_p"
 				echo "IPv6.value $ipv6_p"
 			fi
