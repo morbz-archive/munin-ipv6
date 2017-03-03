@@ -45,14 +45,13 @@ IPv6.draw STACK
 EOF
 	fi
 else
-	ipv4=0
-        total=0
+	total=0
 	if [ -r /proc/net/dev ]
 	then
-                for i in $(fgrep -v -e bond -e lo /proc/net/dev | awk -F' ' '{print $2+$10}')
-                do
-                        total=$(( total + i * 8 ))
-                done
+		for i in $(fgrep -v -e bond -e lo /proc/net/dev | awk -F' ' '{print $2+$10}')
+		do
+			total=$(( total + i * 8 ))
+		done
 	else
 		echo "W: Unable to read /proc/net/dev" >&2
 	fi
@@ -60,15 +59,15 @@ else
 	ipv6=0
 	if [ -r /proc/net/snmp6 ]
 	then
-                for i in $(fgrep -e Ip6InOctets -e Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}')
-                do
-                        ipv6=$(( ipv6 + i * 8 ))
-                done
+		for i in $(fgrep -e Ip6InOctets -e Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}')
+		do
+			ipv6=$(( ipv6 + i * 8 ))
+		done
 	else
 		echo "W: Unable to read /proc/net/snmp6" >&2
 	fi
 	ipv4=$(( total - ipv6 ))
-	
+
 	if [ "$type" = "total" ]
 	then
 		echo "IPv4.value $ipv4"
@@ -79,20 +78,22 @@ else
 		ipv6_f="${statefiledir}/ipv6_traffic_ipv6-${muninhost}"
 		if [[ -a $ipv4_f && -a $ipv6_f ]]
 		then
-                        ipv4_c=$(<$ipv4_f)
-                        ipv6_c=$(<$ipv6_f)
+			ipv4_c=$(<$ipv4_f)
+			ipv6_c=$(<$ipv6_f)
 			ipv4_c=$(( ipv4 - ipv4_c ))
 			ipv6_c=$(( ipv6 - ipv6_c ))
 			total_c=$(( ipv4_c + ipv6_c ))
 			if [ "$total_c" != 0 ]
 			then
-				ipv4_p=$(( 100 * ipv4_c / total_c ))
-				ipv6_p=$(( 100 * ipv6_c / total_c ))
+				# Insert decimal point at 2 offset from the right to avoid requiring bc
+				# We could use Munin .cdef instead but that would screw up old data
+				ipv4_p=`echo $(( 10000 * ipv4_c / total_c )) | sed 's/..$/.&/;t;s/^.$/.0&/'`
+				ipv6_p=`echo $(( 10000 * ipv6_c / total_c )) | sed 's/..$/.&/;t;s/^.$/.0&/'`
 				echo "IPv4.value $ipv4_p"
 				echo "IPv6.value $ipv6_p"
 			fi
 		fi
-		
+
 		echo $ipv4 > $ipv4_f
 		echo $ipv6 > $ipv6_f
 	fi
