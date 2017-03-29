@@ -57,14 +57,17 @@ else
 	fi
 
 	ipv6=0
-	if [ -r /proc/net/snmp6 ]
+	if [ -r /proc/net/dev_snmp6 ]
 	then
-		for i in $(fgrep -e Ip6InOctets -e Ip6OutOctets /proc/net/snmp6 | awk -F' ' '{print $2}')
+		for i in $(ls /proc/net/dev_snmp6 | grep -v -e bond -e lo)
 		do
-			ipv6=$(( ipv6 + i * 8 ))
+			for j in $(fgrep -e Ip6InOctets -e Ip6OutOctets /proc/net/dev_snmp6/$i | awk -F' ' '{print $2}')
+			do
+				ipv6=$(( ipv6 + j * 8 ))
+			done
 		done
 	else
-		echo "W: Unable to read /proc/net/snmp6" >&2
+		echo "W: Unable to read /proc/net/dev_snmp6/" >&2
 	fi
 	ipv4=$(( total - ipv6 ))
 
